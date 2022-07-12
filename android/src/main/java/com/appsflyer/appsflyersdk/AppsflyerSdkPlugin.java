@@ -58,6 +58,8 @@ public class AppsflyerSdkPlugin implements MethodCallHandler, FlutterPlugin, Act
     private static String cachedOnConversionDataFail;
     private static DeepLinkResult cachedDeepLinkResult;
     
+    private static List<AppsflyerSdkPlugin> instances = new ArrayList<>();
+    
     final Handler uiThreadHandler = new Handler(Looper.getMainLooper());
     private EventChannel mEventChannel;
     /**
@@ -169,7 +171,8 @@ public class AppsflyerSdkPlugin implements MethodCallHandler, FlutterPlugin, Act
         mMethodChannel.setMethodCallHandler(this);
         mCallbackChannel = new MethodChannel(messenger, AppsFlyerConstants.AF_CALLBACK_CHANNEL);
         mCallbackChannel.setMethodCallHandler(callbacksHandler);
-
+        
+        instances.add(this);
     }
 
 
@@ -519,7 +522,10 @@ public class AppsflyerSdkPlugin implements MethodCallHandler, FlutterPlugin, Act
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
-                        mCallbackChannel.invokeMethod("callListener", args.toString());
+                        
+                        for (AppsflyerSdkPlugin instance : instances) {
+                            instance.mCallbackChannel.invokeMethod("callListener", args.toString());
+                        }
                     }
                 }
         );
@@ -818,8 +824,11 @@ public class AppsflyerSdkPlugin implements MethodCallHandler, FlutterPlugin, Act
     public void onDetachedFromEngine(FlutterPluginBinding binding) {
         mMethodChannel.setMethodCallHandler(null);
         mMethodChannel = null;
+        mCallbackChannel.setMethodCallHandler(null);
+        mCallbackChannel = null;
         mEventChannel.setStreamHandler(null);
         mEventChannel = null;
+        instances.remove(this);
     }
 
     @Override
